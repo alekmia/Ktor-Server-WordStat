@@ -1,9 +1,23 @@
-# Сервис для сбора статистики
+# Service for collecting statistics
 
-Сервис считает количество слов в файлах и сохраняет эту информацию.
+Service counts amount of words in fiels and saves the information.
 
-Файл с документацией - [./openapi/statistics.yaml](./openapi/statistics.yaml) 
+* **Ktor** was used for implementing the server
+* **kotlinx.serialization** was used for serialization
+* Statistics are calculated in parallel for different files - **coroutines**.
 
-* Для реализации веб-сервера использовался Ktor
-* Для сериализации использовался kotlinx.serialization.
-* Подсчет статистики выполняется параллельно для разных файлов.
+
+File with documentation - [./openapi/statistics.yaml](./openapi/statistics.yaml) 
+
+## /statistic/create 
+Creates a new statistics in the service and returns its ID. If the Idempotency-Key header is passed, then you should remember it and give the previously created identifier when you repeat the request with the same value. The operation itself can be long, so use /statistic/status to track the status
+
+## /statistic/status
+Returns information about current and completed calculations of statistics.
+
+## /statistic/item
+Allows you to get previously calculated statistics.
+
+## /statistic/find
+Allows you to get a list of statistics based on the occurrence of a given phrase in the header of saved statistics.
+
