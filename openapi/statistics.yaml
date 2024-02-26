@@ -1,0 +1,211 @@
+openapi: 3.0.3
+info:
+    title: Statistic service
+    description: Count words statistic
+    version: 1.0.0
+
+servers:
+-   url: "http://localhost:8080"
+    description: Local development
+
+paths:
+    /statistic/create:
+        post:
+            tags: [ Statistic ]
+            operationId: StatisticCreatePost
+            description: >-
+                Создаёт новую статистику в сервисе и возвращает её идентификатор. 
+                Если передан заголовок `Idempotency-Key`, то следует его запомнить и при повторном запросе 
+                с тем же значением отдать ранее созданный идентификатор.
+
+                Сама операция может быть долгой, для отслеживания статуса используйте `/statistic/status`.
+            parameters:
+            -   $ref: "#/components/parameters/IdempotencyKey"
+            requestBody:
+                $ref: "#/components/requestBodies/StatisticCreateRequest"
+            responses:
+                201:
+                    $ref: "#/components/responses/StatisticCreatedResponse"
+                409:
+                    $ref: "#/components/responses/ErrorResponse"
+                415:
+                    $ref: "#/components/responses/ErrorResponse"
+
+    /statistic/status:
+        get:
+            tags: [ Statistic ]
+            operationId: StatisticStatusGet
+            description: >-
+                Возвращает информацию про текущие и завершённые расчёты статистик.
+            parameters:
+            -   $ref: "#/components/parameters/StatisticId"
+            responses:
+                200:
+                    $ref: "#/components/responses/StatisticStatusResponse"
+                404:
+                    $ref: "#/components/responses/ErrorResponse"
+
+    /statistic/item:
+        get:
+            tags: [ Statistic ]
+            operationId: StatisticItemGet
+            description: >-
+                Позволяет получить ранее посчитанную статистику.
+            parameters:
+            -   $ref: "#/components/parameters/StatisticId"
+            responses:
+                200:
+                    $ref: "#/components/responses/StatisticItemResponse"
+                404:
+                    $ref: "#/components/responses/ErrorResponse"
+
+    /statistic/find:
+        get:
+            tags: [ Statistic ]
+            operationId: StatisticFindGet
+            description: >-
+                Позволяет получить список статистик по вхождению заданной фразы в заголовок сохранённых статистик.
+            parameters:
+            -   $ref: "#/components/parameters/StatisticTitle"
+            responses:
+                200:
+                    $ref: "#/components/responses/StatisticListResponse"
+
+
+components:
+    parameters:
+        IdempotencyKey:
+            in: header
+            name: Idempotency-Key
+            required: false
+            schema:
+                type: string
+
+        StatisticTitle:
+            in: query
+            name: title
+            required: true
+            schema:
+                type: string
+
+        StatisticId:
+            in: query
+            name: id
+            required: true
+            schema:
+                $ref: "#/components/schemas/StatisticId"
+
+    requestBodies:
+        StatisticCreateRequest:
+            required: true
+            content:
+                multipart/form-data:
+                    schema:
+                        type: object
+                        additionalProperties: false
+                        required:
+                        - title
+                        - files
+                        properties:
+                            title:
+                                type: string
+                            files:
+                                type: array
+                                items:
+                                    type: string
+                                    format: binary
+
+    responses:
+        StatisticListResponse:
+            description: OK
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        additionalProperties: false
+                        required:
+                        - statistics
+                        properties:
+                            statistics:
+                                type: array
+                                items:
+                                    $ref: "#/components/schemas/Statistic"
+
+        StatisticItemResponse:
+            description: OK
+            content:
+                application/json:
+                    schema:
+                        $ref: "#/components/schemas/Statistic"
+
+        StatisticCreatedResponse:
+            description: CREATED
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        additionalProperties: false
+                        required:
+                        - id
+                        properties:
+                            id:
+                                $ref: "#/components/schemas/StatisticId"
+
+        StatisticStatusResponse:
+            description: OK
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        additionalProperties: false
+                        required:
+                        - status
+                        properties:
+                            status:
+                                $ref: "#/components/schemas/StatisticStatus"
+
+        ErrorResponse:
+            description: ERROR
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        additionalProperties: false
+                        required:
+                        - code
+                        properties:
+                            code:
+                                type: string
+                            message:
+                                type: string
+
+    schemas:
+        StatisticId:
+            type: string
+
+        StatisticStatus:
+            type: string
+            enum:
+            - PROCESSING
+            - COMPLETED
+
+        Statistic:
+            type: object
+            additionalProperties: false
+            required:
+            - id
+            - title
+            - total
+            - statistic
+            properties:
+                id:
+                    $ref: "#/components/schemas/StatisticId"
+                title:
+                    type: string
+                total:
+                    type: integer
+                statistic:
+                    description: "word -> count"
+                    type: object
+                    additionalProperties:
+                        type: integer
