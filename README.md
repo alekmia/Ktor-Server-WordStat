@@ -1,6 +1,6 @@
 # Service for collecting statistics
 
-Service counts amount of words in fiels and saves the information.
+Service counts the amount of words in files and saves the information.
 
 * **Ktor** was used for implementing the server
 * **kotlinx.serialization** was used for serialization
